@@ -3,6 +3,7 @@
 #include <string.h>
 #include <gmp.h>
 #include <assert.h>
+#include "euclid.h"
 
 #define MODE_   0
 #define M_      1
@@ -26,7 +27,7 @@ int args[6] = {OB,OB,OB,OB,OP,OP};     /* OB es para args. obligatorios */
 
 int mode;
 mpz_t m, a, b;
-FILE *in, *out;
+char *in, *out;
 
 int parseA_rgs(int argc, char *argv[])
 {
@@ -114,19 +115,19 @@ int loadA_rgs(char *argv[])
     /* Argumentos opcionales */
     if (args[IN_] == OP)
     {
-        in = stdin;
+        in = NULL;
     }
     else
     {
-        in = fopen(argv[args[IN_]], "r");
+        strcpy(in, argv[args[IN_]]);
     }
     if (args[OUT_] == OP)
     {
-        out = stdout;
+        out = NULL;
     }
     else
     {
-        out = fopen(argv[args[OUT_]], "w");
+        strcpy(out, argv[args[OUT_]]);
     }
     return OK;
 }
@@ -153,6 +154,128 @@ int printA_rgs(char *argv[]) {
         printf("%s\n", argv[args[OUT_]]);
     }
 }
+
+int affineDeCypher(){
+  mpz_t gcd, res1, res2;
+  char ch;
+  FILE *fin, *fout;
+
+  if(mpz_sgn(b) == -1 || mpz_cmp(b, m) > 0){
+    printf("Error: argumento -b no válido para afín.\n");
+    return ERR
+  }
+
+  if(mpz_sgn(a) <= 0){
+    printf("Error: argumento -a no válido para afín.\n");
+    return ERR
+  }
+
+  mpz_init(gcd);
+  euclid(gcd, a, b);
+  if(gcd != 1){
+    printf("Error: argumentos -a y -b no son coprimos.\n");
+    mpz_clear(gcd);
+    return ERR
+  }
+  mpz_clear(gcd);
+
+  if(in == NULL){
+    fin = stdin;
+  }else{
+    fin = fopen(in, "r");
+  }
+
+  if(out == NULL){
+    fout = stdout;
+  }else{
+    fout = fopen(out, "w");
+  }
+
+  while(ch = fgetc(in) != EOF){
+    ch = ch - 'A';
+    mpz_init(res1);
+    mpz_init(res2);
+    mpz_init(res3);
+    mpz_invert(res1, a, m);
+    mpz_ui_sub(res2, ch, b);
+    mpz_mul(res3, res1, res2);
+    mpz_mod(res1, res3, m);
+    ch = 'A' + mpz_get_ui(res1);
+    mpz_clear(res1);
+    mpz_clear(res2);
+    mpz_clear(res3);
+    fprintf(out, "%c", ch);
+  }
+
+  if(in != NULL){
+    fclose(fin);
+  }
+  if(out != NULL){
+    fclose(fout);
+  }
+
+  return OK
+}
+
+int affineCypher(){
+  mpz_t gcd, res1, res2;
+  char ch;
+  FILE *fin, *fout;
+
+  if(mpz_sgn(b) == -1 || mpz_cmp(b, m) > 0){
+    printf("Error: argumento -b no válido para afín.\n");
+    return ERR
+  }
+
+  if(mpz_sgn(a) <= 0){
+    printf("Error: argumento -a no válido para afín.\n");
+    return ERR
+  }
+
+  mpz_init(gcd);
+  euclid(gcd, a, b);
+  if(gcd != 1){
+    printf("Error: argumentos -a y -b no son coprimos.\n");
+    mpz_clear(gcd);
+    return ERR
+  }
+  mpz_clear(gcd);
+
+  if(in == NULL){
+    fin = stdin;
+  }else{
+    fin = fopen(in, "r");
+  }
+
+  if(out == NULL){
+    fout = stdout;
+  }else{
+    fout = fopen(out, "w");
+  }
+
+  while(ch = fgetc(in) != EOF){
+    ch = ch - 'A';
+    mpz_init(res1);
+    mpz_init(res2);
+    mpz_mul_ui(res1, a, ch);
+    mpz_add(res2, res1, b);
+    mpz_mod(res1, res2, m);
+    ch = 'A' + mpz_get_ui(res1);
+    mpz_clear(res1);
+    mpz_clear(res2);
+    fprintf(out, "%c", ch);
+  }
+
+  if(in != NULL){
+    fclose(fin);
+  }
+  if(out != NULL){
+    fclose(fout);
+  }
+
+  return OK
+}
+
 
 
 int main (int argc, char *argv[])
