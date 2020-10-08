@@ -55,9 +55,9 @@ void euclid(mpz_t gcd, mpz_t a, mpz_t b)
 {
     struct ext_ret ret;
     ext_euclid  (&ret, a, b);
+    mpz_set     (gcd, ret.gcd);
     mpz_clear   (ret.bez_a);
     mpz_clear   (ret.bez_b);
-    mpz_set     (gcd, ret.gcd);
     mpz_clear   (ret.gcd);
 }
 
