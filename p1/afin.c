@@ -28,7 +28,7 @@ int mode;
 mpz_t m, a, b;
 FILE *in, *out;
 
-int parseA_rgs(int argc, char *argv[])
+int parse_args(int argc, char *argv[])
 {
     int i;
     i = 1;
@@ -94,7 +94,7 @@ int parseA_rgs(int argc, char *argv[])
     return OK;
 }
 
-int loadA_rgs(char *argv[])
+int load_args(char *argv[])
 {
     /* Argumentos obligatorios */
     if (strcmp(argv[args[MODE_]], "-C") == 0)
@@ -131,7 +131,7 @@ int loadA_rgs(char *argv[])
     return OK;
 }
 
-int printA_rgs(char *argv[]) {
+int print_args(char *argv[]) {
     printf("Modo: %d\n", mode);
     gmp_printf("m = %Zd\n", m);
     gmp_printf("a = %Zd\n", a);
@@ -157,11 +157,11 @@ int printA_rgs(char *argv[]) {
 
 int main (int argc, char *argv[])
 {
-    if (parseA_rgs(argc, argv) == ERR)
+    if (parse_args(argc, argv) == ERR)
     {
         return ERR;
     }
-    loadA_rgs(argv);
-    printA_rgs(argv);
+    load_args(argv);
+    print_args(argv);
     return OK;
 }
