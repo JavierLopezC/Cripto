@@ -6,12 +6,14 @@
 
 #define MODE_   0
 #define M_      1
-#define A_      2
-#define B_      3
-#define IN_     4
-#define OUT_    5
+#define A1_     2
+#define A2_     3
+#define B1_     4
+#define B2_     5
+#define IN_     6
+#define OUT_    7
 
-#define NARGS   6
+#define NARGS   8
 
 #define ENC     1
 #define DEC     2
@@ -22,10 +24,10 @@
 #define ERR     -1
 #define OK      0
 
-int args[6] = {OB,OB,OB,OB,OP,OP};     /* OB es para args. obligatorios */
+int args[8] = {OB,OB,OB,OB,OB,OB,OP,OP};     /* OB es para args. obligatorios */
 
 int mode;
-mpz_t m, a, b;
+mpz_t m, a1, a2, b1, b2;
 char *in, *out;
 
 int parse_args(int argc, char *argv[])
@@ -53,11 +55,13 @@ int parse_args(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-a") == 0)
         {
-            args[A_] = ++i;
+            args[A1_] = ++i;
+            args[A2_] = ++i;
         }
         else if (strcmp(argv[i], "-b") == 0)
         {
-            args[B_] = ++i;
+            args[B1_] = ++i;
+            args[B2_] = ++i;
         }
         else if (strcmp(argv[i], "-i") == 0)
         {
@@ -106,11 +110,15 @@ int load_args(char *argv[])
         mode = DEC;
     }
     mpz_init(m);
-    mpz_init(a);
-    mpz_init(b);
+    mpz_init(a1);
+    mpz_init(b1);
+    mpz_init(a2);
+    mpz_init(b2);
     mpz_set_str(m, argv[args[M_]], 10);
-    mpz_set_str(a, argv[args[A_]], 10);
-    mpz_set_str(b, argv[args[B_]], 10);
+    mpz_set_str(a1, argv[args[A1_]], 10);
+    mpz_set_str(b1, argv[args[B1_]], 10);
+    mpz_set_str(a2, argv[args[A2_]], 10);
+    mpz_set_str(b2, argv[args[B2_]], 10);
     /* Argumentos opcionales */
     if (args[IN_] == OP)
     {
@@ -121,8 +129,10 @@ int load_args(char *argv[])
         in = (char*)malloc(sizeof(char)*(1 + strlen(argv[args[IN_]])));
         if(in == NULL){
           printf("Error de memoria.\n");
-          mpz_clear(a);
-          mpz_clear(b);
+          mpz_clear(a1);
+          mpz_clear(a2);
+          mpz_clear(b1);
+          mpz_clear(b2);
           mpz_clear(m);
           return ERR;
         }
@@ -137,8 +147,10 @@ int load_args(char *argv[])
         out = (char*)malloc(sizeof(char)*(1 + strlen(argv[args[OUT_]])));
         if(out == NULL){
           printf("Error de memoria.\n");
-          mpz_clear(a);
-          mpz_clear(b);
+          mpz_clear(a1);
+          mpz_clear(a2);
+          mpz_clear(b1);
+          mpz_clear(b2);
           mpz_clear(m);
           if(in){
             free(in);
@@ -153,21 +165,24 @@ int load_args(char *argv[])
 int print_args(char *argv[]) {
     printf("Modo: %d\n", mode);
     gmp_printf("m = %Zd\n", m);
-    gmp_printf("a = %Zd\n", a);
-    gmp_printf("b = %Zd\n", b);
+    gmp_printf("a = (%Zd, %Zd)\n", a1, a2);
+    gmp_printf("b = (%Zd, %Zd)\n", b1, b2);
     printf("%s\n", in);
     printf("%s\n", out);
 }
 
 int affineDeCypher(){
-  mpz_t gcd, res1, res2, res3;
+  mpz_t gcd1, gcd2, gcd3, gcd4, res1, res2, res3;
   char ch;
   FILE *fin, *fout;
+  int i;
 
-  if(mpz_sgn(b) == -1 || mpz_cmp(b, m) > 0){
+  if(mpz_sgn(b1) == -1 | mpz_cmp(b1, m) > 0 | mpz_sgn(b2) == -1 | mpz_cmp(b2, m) > 0){
     printf("Error: argumento -b no válido para afín.\n");
-    mpz_clear(a);
-    mpz_clear(b);
+    mpz_clear(a1);
+    mpz_clear(b1);
+    mpz_clear(a2);
+    mpz_clear(b2);
     mpz_clear(m);
     if(in){
       free(in);
@@ -178,10 +193,12 @@ int affineDeCypher(){
     return ERR;
   }
 
-  if(mpz_sgn(a) <= 0){
+  if(mpz_sgn(a1) <= 0 | mpz_sgn(a2) <= 0){
     printf("Error: argumento -a no válido para afín.\n");
-    mpz_clear(a);
-    mpz_clear(b);
+    mpz_clear(a1);
+    mpz_clear(b1);
+    mpz_clear(a2);
+    mpz_clear(b2);
     mpz_clear(m);
     if(in){
       free(in);
@@ -192,13 +209,24 @@ int affineDeCypher(){
     return ERR;
   }
 
-  mpz_init(gcd);
-  euclid(gcd, a, b);
-  if(mpz_cmp_ui(gcd, 1) != 0){
+  mpz_init(gcd1);
+  mpz_init(gcd2);
+  mpz_init(gcd3);
+  mpz_init(gcd4);
+  euclid(gcd1, a1, b1);
+  euclid(gcd2, a1, b2);
+  euclid(gcd3, a2, b1);
+  euclid(gcd4, a2, b2);
+  if(mpz_cmp_ui(gcd1, 1) != 0 | mpz_cmp_ui(gcd2, 1) != 0 | mpz_cmp_ui(gcd3, 1) != 0 | mpz_cmp_ui(gcd4, 1) != 0){
     printf("Error: argumentos -a y -b no son coprimos.\n");
-    mpz_clear(gcd);
-    mpz_clear(a);
-    mpz_clear(b);
+    mpz_clear(gcd1);
+    mpz_clear(gcd2);
+    mpz_clear(gcd3);
+    mpz_clear(gcd4);
+    mpz_clear(a1);
+    mpz_clear(b1);
+    mpz_clear(a2);
+    mpz_clear(b2);
     mpz_clear(m);
     if(in){
       free(in);
@@ -208,7 +236,10 @@ int affineDeCypher(){
     }
     return ERR;
   }
-  mpz_clear(gcd);
+  mpz_clear(gcd1);
+  mpz_clear(gcd2);
+  mpz_clear(gcd3);
+  mpz_clear(gcd4);
 
   if(in == NULL){
     fin = stdin;
@@ -216,8 +247,10 @@ int affineDeCypher(){
     fin = fopen(in, "r");
     if(fin == NULL){
       printf("Error: no se pudo abrir el archivo de entrada.\n");
-      mpz_clear(a);
-      mpz_clear(b);
+      mpz_clear(a1);
+      mpz_clear(b1);
+      mpz_clear(a2);
+      mpz_clear(b2);
       mpz_clear(m);
       if(in){
         free(in);
@@ -235,8 +268,10 @@ int affineDeCypher(){
     fout = fopen(out, "w");
     if(fout == NULL){
       printf("Error: no se pudo abrir el archivo de salida.\n");
-      mpz_clear(a);
-      mpz_clear(b);
+      mpz_clear(a1);
+      mpz_clear(b1);
+      mpz_clear(a2);
+      mpz_clear(b2);
       mpz_clear(m);
       if(in){
         free(in);
@@ -247,13 +282,15 @@ int affineDeCypher(){
       return ERR;
     }
   }
-
+  i = 0;
   while((ch = fgetc(fin)) != EOF){
     ch = ch - 'A';
     if(ch < 0 | mpz_cmp_ui(m, ch) <= 0){
       printf("Caracter en texto cifrado no pertenece al alfabeto.\n");
-      mpz_clear(a);
-      mpz_clear(b);
+      mpz_clear(a1);
+      mpz_clear(b1);
+      mpz_clear(a2);
+      mpz_clear(b2);
       mpz_clear(m);
       if(in){
         free(in);
@@ -266,8 +303,16 @@ int affineDeCypher(){
     mpz_init(res1);
     mpz_init(res2);
     mpz_init(res3);
-    mpz_invert(res1, a, m);
-    mpz_ui_sub(res2, ch, b);
+    if(i < 2){
+      mpz_invert(res1, a1, m);
+    }else{
+      mpz_invert(res1, a2, m);
+    }
+    if((i % 2) == 0){
+      mpz_ui_sub(res2, ch, b1);
+    }else{
+      mpz_ui_sub(res2, ch, b2);
+    }
     mpz_mul(res3, res1, res2);
     mpz_mod(res1, res3, m);
     ch = 'A' + mpz_get_ui(res1);
@@ -275,6 +320,7 @@ int affineDeCypher(){
     mpz_clear(res2);
     mpz_clear(res3);
     fprintf(fout, "%c", ch);
+    i = (i + 1) % 4;
   }
 
   if(in != NULL){
@@ -283,8 +329,10 @@ int affineDeCypher(){
   if(out != NULL){
     fclose(fout);
   }
-  mpz_clear(a);
-  mpz_clear(b);
+  mpz_clear(a1);
+  mpz_clear(b1);
+  mpz_clear(a2);
+  mpz_clear(b2);
   mpz_clear(m);
   if(in){
     free(in);
@@ -297,14 +345,17 @@ int affineDeCypher(){
 }
 
 int affineCypher(){
-  mpz_t gcd, res1, res2;
+  mpz_t gcd1, gcd2, gcd3, gcd4, res1, res2;
   char ch;
   FILE *fin, *fout;
+  int i;
 
-  if(mpz_sgn(b) == -1 || mpz_cmp(b, m) > 0){
+  if(mpz_sgn(b1) == -1 | mpz_cmp(b1, m) > 0 | mpz_sgn(b2) == -1 | mpz_cmp(b2, m) > 0){
     printf("Error: argumento -b no válido para afín.\n");
-    mpz_clear(a);
-    mpz_clear(b);
+    mpz_clear(a1);
+    mpz_clear(b1);
+    mpz_clear(a2);
+    mpz_clear(b2);
     mpz_clear(m);
     if(in){
       free(in);
@@ -315,10 +366,12 @@ int affineCypher(){
     return ERR;
   }
 
-  if(mpz_sgn(a) <= 0){
+  if(mpz_sgn(a1) <= 0 | mpz_sgn(a2) <= 0){
     printf("Error: argumento -a no válido para afín.\n");
-    mpz_clear(a);
-    mpz_clear(b);
+    mpz_clear(a1);
+    mpz_clear(b1);
+    mpz_clear(a2);
+    mpz_clear(b2);
     mpz_clear(m);
     if(in){
       free(in);
@@ -329,13 +382,24 @@ int affineCypher(){
     return ERR;
   }
 
-  mpz_init(gcd);
-  euclid(gcd, a, b);
-  if(mpz_cmp_ui(gcd, 1) != 0){
-    printf("Error: argumentos -a y -b no son coprimos.\n");
-    mpz_clear(gcd);
-    mpz_clear(a);
-    mpz_clear(b);
+  mpz_init(gcd1);
+  mpz_init(gcd2);
+  mpz_init(gcd3);
+  mpz_init(gcd4);
+  euclid(gcd1, a1, b1);
+  euclid(gcd2, a1, b2);
+  euclid(gcd3, a2, b1);
+  euclid(gcd4, a2, b2);
+  if(mpz_cmp_ui(gcd1, 1) != 0 | mpz_cmp_ui(gcd2, 1) != 0 | mpz_cmp_ui(gcd3, 1) != 0 | mpz_cmp_ui(gcd4, 1) != 0){
+    printf("Error: algun par de argumentos -a y -b no son coprimos.\n");
+    mpz_clear(gcd1);
+    mpz_clear(gcd2);
+    mpz_clear(gcd3);
+    mpz_clear(gcd4);
+    mpz_clear(a1);
+    mpz_clear(b1);
+    mpz_clear(a2);
+    mpz_clear(b2);
     mpz_clear(m);
     if(in){
       free(in);
@@ -345,7 +409,10 @@ int affineCypher(){
     }
     return ERR;
   }
-  mpz_clear(gcd);
+  mpz_clear(gcd1);
+  mpz_clear(gcd2);
+  mpz_clear(gcd3);
+  mpz_clear(gcd4);
 
   if(in == NULL){
     fin = stdin;
@@ -353,8 +420,10 @@ int affineCypher(){
     fin = fopen(in, "r");
     if(fin == NULL){
       printf("Error: no se pudo abrir el archivo de entrada.\n");
-      mpz_clear(a);
-      mpz_clear(b);
+      mpz_clear(a1);
+      mpz_clear(b1);
+      mpz_clear(a2);
+      mpz_clear(b2);
       mpz_clear(m);
       if(in){
         free(in);
@@ -371,8 +440,10 @@ int affineCypher(){
     fout = fopen(out, "w");
     if(fout == NULL){
       printf("Error: no se pudo abrir el archivo de salida.\n");
-      mpz_clear(a);
-      mpz_clear(b);
+      mpz_clear(a1);
+      mpz_clear(b1);
+      mpz_clear(a2);
+      mpz_clear(b2);
       mpz_clear(m);
       if(in){
         free(in);
@@ -384,13 +455,15 @@ int affineCypher(){
       return ERR;
     }
   }
-
+  i = 0;
   while((ch = fgetc(fin)) != EOF){
     ch = ch - 'A';
     if(ch < 0 | mpz_cmp_ui(m, ch) <= 0){
       printf("Caracter en texto plano no pertenece al alfabeto.\n");
-      mpz_clear(a);
-      mpz_clear(b);
+      mpz_clear(a1);
+      mpz_clear(b1);
+      mpz_clear(a2);
+      mpz_clear(b2);
       mpz_clear(m);
       if(in){
         free(in);
@@ -404,13 +477,22 @@ int affineCypher(){
     }
     mpz_init(res1);
     mpz_init(res2);
-    mpz_mul_ui(res1, a, ch);
-    mpz_add(res2, res1, b);
+    if(i < 2){
+      mpz_mul_ui(res1, a1, ch);
+    }else{
+      mpz_mul_ui(res1, a2, ch);
+    }
+    if((i % 2) == 0){
+      mpz_add(res2, res1, b1);
+    }else{
+      mpz_add(res2, res1, b2);
+    }
     mpz_mod(res1, res2, m);
     ch = 'A' + mpz_get_ui(res1);
     mpz_clear(res1);
     mpz_clear(res2);
     fprintf(fout, "%c", ch);
+    i = (i + 1) % 4;
   }
 
   if(in != NULL){
@@ -419,8 +501,10 @@ int affineCypher(){
   if(out != NULL){
     fclose(fout);
   }
-  mpz_clear(a);
-  mpz_clear(b);
+  mpz_clear(a1);
+  mpz_clear(b1);
+  mpz_clear(a2);
+  mpz_clear(b2);
   mpz_clear(m);
   if(in){
     free(in);
@@ -450,8 +534,10 @@ int main (int argc, char *argv[])
       return affineDeCypher();
     }
     printf("Error en el modo seleccionado.");
-    mpz_clear(a);
-    mpz_clear(b);
+    mpz_clear(a1);
+    mpz_clear(b1);
+    mpz_clear(a2);
+    mpz_clear(b2);
     mpz_clear(m);
     if(in){
       free(in);
