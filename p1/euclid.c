@@ -1,4 +1,3 @@
-#include <gmp.h>
 #include "euclid.h"
 
 #define OLD_R_  mpzs[0]
@@ -59,17 +58,4 @@ void euclid(mpz_t gcd, mpz_t a, mpz_t b)
     mpz_clear   (ret.bez_a);
     mpz_clear   (ret.bez_b);
     mpz_clear   (ret.gcd);
-}
-
-int main()
-{
-    mpz_t a, b;
-    mpz_init(a);
-    mpz_init(b);
-    mpz_set_str(a, "142344520", 10);
-    mpz_set_str(b, "4234330", 10);
-    euclid(a, a, b);
-    gmp_printf("%Zd\n", a);
-    mpz_clear(a);
-    mpz_clear(b);
 }

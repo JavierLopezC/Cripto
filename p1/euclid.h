@@ -1,5 +1,6 @@
 #ifndef EUCLID_H
 #define EUCLID_H
+#include <gmp.h>
 
 struct ext_ret
 {
