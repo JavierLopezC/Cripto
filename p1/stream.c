@@ -26,11 +26,10 @@
 int args[6] = {OB,OB,OP,OP};     /* OB es para args. obligatorios */
 
 int mode;
-int key_len;
-char *key;
+long key;
 FILE *in, *out;
 
-/* vigenere {-C|-D} {-k clave} [-i file_in] [-o file_out] */
+/* stream {-C|-D} {-k clave} [-i file_in] [-o file_out] */
 
 int parse_args(int argc, char *argv[])
 {
@@ -97,10 +96,7 @@ int load_args(char *argv[])
         mode = ENC;
     else // if (strcmp(argv[i], "-D") == 0)
         mode = DEC;
-    key_len = strlen(argv[args[K_]]);
-    key = (char *)malloc(sizeof(char) * key_len);
-    assert(key);
-    strncpy(key, argv[args[K_]], key_len);
+    sscanf(argv[args[K_]], "%ld", &key);
     /* Argumentos opcionales */
     if (args[IN_] == OP)
         in = stdin;
@@ -115,14 +111,13 @@ int load_args(char *argv[])
 
 void clean()
 {
-    free(key);
     fclose(in);
     fclose(out);
 }
 
 int print_args(char *argv[]) {
     printf("Modo: %d\n", mode);
-    printf("Clave: %s\n", key);
+    printf("Clave: %ld\n", key);
     if (args[IN_] == OP)
     {
         printf("stdin\n");
@@ -141,28 +136,35 @@ int print_args(char *argv[]) {
     }
 }
 
-int encode_char(int c, int i)
+int rand_()
 {
-    return (c + key[i % key_len] - 2*'A') % ALPH_SIZE + 'A';
+    return (rand() % ALPH_SIZE);
 }
 
-int vigenere_encode()
+int encode_char(int c, int r)
+{
+    return (c + r - 'A') % ALPH_SIZE + 'A';
+}
+
+int stream_encode()
 {
     int c, i = 0;
+    srand(key);
     while ((c = fgetc(in)) != EOF && IS_IN_ALPH(c))
-        fputc(encode_char(c, i++), out);
+        fputc(encode_char(c, rand_()), out);
 }
 
-int decode_char(int c, int i)
+int decode_char(int c, int r)
 {
-    return (c - key[i % key_len] + ALPH_SIZE) % ALPH_SIZE + 'A';
+    return (c + ALPH_SIZE - r - 'A') % ALPH_SIZE + 'A';
 }
 
-int vigenere_decode()
+int stream_decode()
 {
     int c, i = 0;
+    srand(key);
     while ((c = fgetc(in)) != EOF && IS_IN_ALPH(c))
-        fputc(decode_char(c, i++), out);
+        fputc(decode_char(c, rand_()), out);
 }
 
 int is_valid_str(char *str, int str_len)
@@ -192,16 +194,10 @@ int main (int argc, char *argv[])
     load_args(argv);
     print_args(argv);
 
-    if (is_valid_str(key, key_len) == ERR)
-    {
-        printf("Error: la clave contiene chars fuera del alfabeto\n");
-        return ERR;
-    }
-
     if (mode == ENC)
-        vigenere_encode();
+        stream_encode();
     else /* if (mode == DEC) */
-        vigenere_decode();
+        stream_decode();
 
     clean();
 
