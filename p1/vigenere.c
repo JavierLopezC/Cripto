@@ -116,7 +116,9 @@ int load_args(char *argv[])
 void clean()
 {
     free(key);
+    fflush(in);
     fclose(in);
+    fflush(out);
     fclose(out);
 }
 
@@ -124,21 +126,13 @@ int print_args(char *argv[]) {
     printf("Modo: %d\n", mode);
     printf("Clave: %s\n", key);
     if (args[IN_] == OP)
-    {
         printf("stdin\n");
-    }
     else
-    {
         printf("%s\n", argv[args[IN_]]);
-    }
     if (args[OUT_] == OP)
-    {
         printf("stdout\n");
-    }
     else
-    {
         printf("%s\n", argv[args[OUT_]]);
-    }
 }
 
 int encode_char(int c, int i)
@@ -186,9 +180,7 @@ int is_valid_str(char *str, int str_len)
 int main (int argc, char *argv[])
 {
     if (parse_args(argc, argv) == ERR)
-    {
         return ERR;
-    }
     load_args(argv);
     print_args(argv);
 
