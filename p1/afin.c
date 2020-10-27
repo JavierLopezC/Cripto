@@ -131,7 +131,8 @@ int load_args(char *argv[])
     return OK;
 }
 
-int print_args(char *argv[]) {
+int print_args(char *argv[])
+{
     printf("Modo: %d\n", mode);
     gmp_printf("m = %Zd\n", m);
     gmp_printf("a = %Zd\n", a);
@@ -155,181 +156,198 @@ int print_args(char *argv[]) {
 }
 
 int check_args(){
-  mpz_t gcd;
-  if(mpz_sgn(b) == -1 || mpz_cmp(b, m) > 0){
-    printf("Error: argumento -b no válido para afín.\n");
-    mpz_clear(a);
-    mpz_clear(b);
-    mpz_clear(m);
-    if(in){
-      free(in);
+    mpz_t gcd;
+    /*comprobar 0 <= b < m*/
+    if(mpz_sgn(b) == -1 || mpz_cmp(b, m) > 0){
+        printf("Error: argumento -b no válido para afín.\n");
+        mpz_clear(a);
+        mpz_clear(b);
+        mpz_clear(m);
+        if(in){
+            free(in);
+        }
+        if(out){
+            free(out);
+        }
+        return ERR;
     }
-    if(out){
-      free(out);
+    /*comprobar 0 < a*/
+    if(mpz_sgn(a) <= 0){
+        printf("Error: argumento -a no válido para afín.\n");
+        mpz_clear(a);
+        mpz_clear(b);
+        mpz_clear(m);
+        if(in){
+            free(in);
+        }
+        if(out){
+            free(out);
+        }
+        return ERR;
     }
-    return ERR;
-  }
 
-  if(mpz_sgn(a) <= 0){
-    printf("Error: argumento -a no válido para afín.\n");
-    mpz_clear(a);
-    mpz_clear(b);
-    mpz_clear(m);
-    if(in){
-      free(in);
+    mpz_init(gcd);
+    euclid(gcd, a, b);
+    /*comprobar a y b coprimos*/
+    if(mpz_cmp_ui(gcd, 1) != 0){
+        printf("Error: argumentos -a y -b no son coprimos.\n");
+        mpz_clear(gcd);
+        mpz_clear(a);
+        mpz_clear(b);
+        mpz_clear(m);
+        if(in){
+            free(in);
+        }
+        if(out){
+            free(out);
+        }
+        return ERR;
     }
-    if(out){
-      free(out);
-    }
-    return ERR;
-  }
-
-  mpz_init(gcd);
-  euclid(gcd, a, b);
-  if(mpz_cmp_ui(gcd, 1) != 0){
-    printf("Error: argumentos -a y -b no son coprimos.\n");
     mpz_clear(gcd);
-    mpz_clear(a);
-    mpz_clear(b);
-    mpz_clear(m);
-    if(in){
-      free(in);
-    }
-    if(out){
-      free(out);
-    }
-    return ERR;
-  }
-  mpz_clear(gcd);
-  return OK;
+    return OK;
 }
 
 int encode_char(int c){
-  mpz_t res1, res2;
-  c = c - 'A';
-  if(c < 0 | mpz_cmp_ui(m, c) <= 0){
-    printf("Caracter en texto plano no pertenece al alfabeto.\n");
-    mpz_clear(a);
-    mpz_clear(b);
-    mpz_clear(m);
-    return ERR;
-  }
-  mpz_init(res1);
-  mpz_init(res2);
-  mpz_mul_ui(res1, a, c);
-  mpz_add(res2, res1, b);
-  mpz_mod(res1, res2, m);
-  c = 'A' + mpz_get_ui(res1);
-  mpz_clear(res1);
-  mpz_clear(res2);
+    mpz_t res1, res2;
+    c = c - 'A';
+    /*comprobar c en alfabeto*/
+    if(c < 0 | mpz_cmp_ui(m, c) <= 0){
+        printf("Caracter en texto plano no pertenece al alfabeto.\n");
+        mpz_clear(a);
+        mpz_clear(b);
+        mpz_clear(m);
+        return ERR;
+    }
+    mpz_init(res1);
+    mpz_init(res2);
+    /*c = a*c + b mod m*/
+    mpz_mul_ui(res1, a, c);
+    mpz_add(res2, res1, b);
+    mpz_mod(res1, res2, m);
+    c = 'A' + mpz_get_ui(res1);
+    mpz_clear(res1);
+    mpz_clear(res2);
     return c;
 }
 
 int decode_char(int c){
-  mpz_t res1, res2, res3;
-  c = c - 'A';
-  if(c < 0 | mpz_cmp_ui(m, c) <= 0){
-    printf("Caracter en texto plano no pertenece al alfabeto.\n");
-    mpz_clear(a);
-    mpz_clear(b);
-    mpz_clear(m);
-    return ERR;
-  }
-  mpz_init(res1);
-  mpz_init(res2);
-  mpz_init(res3);
-  mpz_invert(res1, a, m);
-  mpz_ui_sub(res2, c, b);
-  mpz_mul(res3, res1, res2);
-  mpz_mod(res1, res3, m);
-  c = 'A' + mpz_get_ui(res1);
-  mpz_clear(res1);
-  mpz_clear(res2);
-  mpz_clear(res3);
+    mpz_t res1, res2, res3;
+    c = c - 'A';
+    /*comprobar c en alfabeto*/
+    if(c < 0 | mpz_cmp_ui(m, c) <= 0){
+        printf("Caracter en texto plano no pertenece al alfabeto.\n");
+        mpz_clear(a);
+        mpz_clear(b);
+        mpz_clear(m);
+        return ERR;
+    }
+    mpz_init(res1);
+    mpz_init(res2);
+    mpz_init(res3);
+    /*c = a⁻¹ * (c - b) mod m*/
+    mpz_invert(res1, a, m);
+    mpz_ui_sub(res2, c, b);
+    mpz_mul(res3, res1, res2);
+    mpz_mod(res1, res3, m);
+    c = 'A' + mpz_get_ui(res1);
+    mpz_clear(res1);
+    mpz_clear(res2);
+    mpz_clear(res3);
     return c;
 }
 
 int affine_encode(){
-  int c;
-  if(check_args() == ERR){
-    return ERR;
-  }
-  while ((c = fgetc(in)) != EOF){
-    if(c == '\n'){
-      break;
+    int c;
+    /*comprobar argumentos*/
+    if(check_args() == ERR){
+        return ERR;
     }
-    c = encode_char(c);
-    if(c == ERR){
-      return ERR;
+    /*recorrer fichero*/
+    while ((c = fgetc(in)) != EOF){
+        if(c == '\n'){
+            break;
+        }
+        /*cifrar c*/
+        c = encode_char(c);
+        if(c == ERR){
+            return ERR;
+        }
+        /*imprimir en salida*/
+        fputc(c, out);
     }
-    fputc(c, out);
-  }
-  mpz_clear(a);
-  mpz_clear(b);
-  mpz_clear(m);
-  return OK;
+    mpz_clear(a);
+    mpz_clear(b);
+    mpz_clear(m);
+    return OK;
 }
 
 int affine_decode(){
-  int c;
-  if(check_args() == ERR){
-    return ERR;
-  }
-  while ((c = fgetc(in)) != EOF){
-    if(c == '\n'){
-      break;
+    int c;
+    /*comprobar argumentos*/
+    if(check_args() == ERR){
+        return ERR;
     }
-    c = decode_char(c);
-    if(c == ERR){
-      return ERR;
+    /*recorrer fichero*/
+    while ((c = fgetc(in)) != EOF){
+        if(c == '\n'){
+            break;
+        }
+        /*descifrar c*/
+        c = decode_char(c);
+        if(c == ERR){
+            return ERR;
+        }
+        /*imprimir en salida*/
+        fputc(c, out);
     }
-    fputc(c, out);
-  }
-  mpz_clear(a);
-  mpz_clear(b);
-  mpz_clear(m);
-  return OK;
+    mpz_clear(a);
+    mpz_clear(b);
+    mpz_clear(m);
+    return OK;
 }
 
 
 
 int main (int argc, char *argv[]){
-  int ret;
-  if (parse_args(argc, argv) == ERR){
-    return ERR;
-  }
-  if(load_args(argv) == ERR){
-    return ERR;
-  }
-  print_args(argv);
-  if(mode == ENC){
-    ret = affine_encode();
+    int ret;
+    /*parsear y guardar argumentos*/
+    if (parse_args(argc, argv) == ERR){
+        return ERR;
+    }
+    if(load_args(argv) == ERR){
+        return ERR;
+    }
+    print_args(argv);
+    /*cifrar*/
+    if(mode == ENC){
+        ret = affine_encode();
+        if(in != stdin){
+            fclose(in);
+        }
+        if(out != stdout){
+            fclose(out);
+        }
+        return ret;
+    /*descifrar*/
+    }else if(mode == DEC){
+        ret = affine_decode();
+        if(in != stdin){
+            fclose(in);
+        }
+        if(out != stdout){
+            fclose(out);
+        }
+        return ret;
+    }
+    printf("Error en el modo seleccionado.");
+    mpz_clear(a);
+    mpz_clear(b);
+    mpz_clear(m);
     if(in != stdin){
-      fclose(in);
+        fclose(in);
     }
     if(out != stdout){
-      fclose(out);
+        fclose(out);
     }
-    return ret;
-  }else if(mode == DEC){
-    ret = affine_decode();
-    if(in != stdin){
-      fclose(in);
-    }
-    if(out != stdout){
-      fclose(out);
-    }
-    return ret;
-  }
-  printf("Error en el modo seleccionado.");
-  mpz_clear(a);
-  mpz_clear(b);
-  mpz_clear(m);
-  if(in != stdin){
-    fclose(in);
-  }
-  if(out != stdout){
-    fclose(out);
-  }
-  return ERR;
+    return ERR;
 }
