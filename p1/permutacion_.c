@@ -451,29 +451,29 @@ void decode(int **in_, int **out_)
     fuera del alfabeto)
 */
 
-int main (int argc, char *argv[])
-{
-    /* Parsea, carga e imprime los argumentos */
-    if (parse_args(argc, argv) == ERR)
-        return ERR;
-    load_args(argv);
-    print_args(argv);
-
-    /* Comprueba que las permutaciones son válidas */
-    if (are_valid_perms() == ERR)
-    {
-        printf("Error: permutaciones inválidas\n");
-        return ERR;
-    }
-
-    /* Codifica o decodifica dependiendo del modo */
-    if (mode == ENC)
-        permutacion_encode();
-    else /* if (mode == DEC) */
-        permutacion_decode();
-
-    /* Limpia la memoria utilizada */
-    clean();
-
-    return OK;
-}
+// int main (int argc, char *argv[])
+// {
+//     /* Parsea, carga e imprime los argumentos */
+//     if (parse_args(argc, argv) == ERR)
+//         return ERR;
+//     load_args(argv);
+//     print_args(argv);
+//
+//     /* Comprueba que las permutaciones son válidas */
+//     if (are_valid_perms() == ERR)
+//     {
+//         printf("Error: permutaciones inválidas\n");
+//         return ERR;
+//     }
+//
+//     /* Codifica o decodifica dependiendo del modo */
+//     if (mode == ENC)
+//         permutacion_encode();
+//     else /* if (mode == DEC) */
+//         permutacion_decode();
+//
+//     /* Limpia la memoria utilizada */
+//     clean();
+//
+//     return OK;
+// }

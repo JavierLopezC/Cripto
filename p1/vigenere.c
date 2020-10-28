@@ -1,7 +1,14 @@
+/*
+    Este fichero tiene el código necesario para implementar el criptosistema
+    de vigenere.
+
+    Autores:
+        Mario García Pascual
+        Javier López Cano
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gmp.h>
 #include <assert.h>
 
 #define MODE_   0
@@ -32,6 +39,10 @@ FILE *in, *out;
 
 /* vigenere {-C|-D} {-k clave} [-i file_in] [-o file_out] */
 
+/*
+    PARTE 0: Parseo de argumentos. Dado que no forma estrictamente parte de la
+    práctica no se comenta sistemáticamente
+*/
 int parse_args(int argc, char *argv[])
 {
     int i;
@@ -135,30 +146,58 @@ int print_args(char *argv[]) {
         printf("%s\n", argv[args[OUT_]]);
 }
 
+/*
+    PARTE 1: Funciones para implementar el cifrado/descifrado de vigenere
+*/
+
+/*
+    Devuelve el caracter c codificado conociendo la posición en la que estamos
+    ahora en el fichero (i), y usando el caracter adecuado de la clave
+    (key[i % key_len])
+*/
 int encode_char(int c, int i)
 {
     return (c + key[i % key_len] - 2*'A') % ALPH_SIZE + 'A';
 }
 
+/*
+    Lee, codifica y escribe, hasta terminar el fichero o encontrar un caracter
+    fuera del alfabeto
+*/
 int vigenere_encode()
 {
     int c, i = 0;
     while ((c = fgetc(in)) != EOF && IS_IN_ALPH(c))
         fputc(encode_char(c, i++), out);
+    fputc('\n', out);
 }
 
+/*
+    Devuelve el caracter c decodificado conociendo la posición en la que estamos
+    ahora en el fichero (i), y usando el caracter adecuado de la clave
+    (key[i % key_len])
+*/
 int decode_char(int c, int i)
 {
     return (c - key[i % key_len] + ALPH_SIZE) % ALPH_SIZE + 'A';
 }
 
+/*
+    Lee, decodifica y escribe, hasta terminar el fichero o encontrar un caracter
+    fuera del alfabeto
+*/
 int vigenere_decode()
 {
     int c, i = 0;
     while ((c = fgetc(in)) != EOF && IS_IN_ALPH(c))
         fputc(decode_char(c, i++), out);
+    fputc('\n', out);
 }
 
+/*
+    Comprueba que el string str es válida, esto es, que no tiene chars fuera
+    del alfabeto. Se usa parar comprobar que la clave es válida
+*/
 int is_valid_str(char *str, int str_len)
 {
     for (int i = 0; i < str_len; i++)
@@ -179,22 +218,26 @@ int is_valid_str(char *str, int str_len)
 
 int main (int argc, char *argv[])
 {
+    /* Parsea, carga e imprime los argumentos */
     if (parse_args(argc, argv) == ERR)
         return ERR;
     load_args(argv);
     print_args(argv);
 
+    /* Comprueba que la clave es válida */
     if (is_valid_str(key, key_len) == ERR)
     {
         printf("Error: la clave contiene chars fuera del alfabeto\n");
         return ERR;
     }
 
+    /* Codifica o decodifica dependiendo del modo */
     if (mode == ENC)
         vigenere_encode();
     else /* if (mode == DEC) */
         vigenere_decode();
 
+    /* Limpia la memoria utilizada */
     clean();
 
     return OK;

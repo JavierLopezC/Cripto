@@ -1,8 +1,14 @@
+/*
+    Este fichero tiene el código necesario para implementar el criptosistema
+    de flujo.
+
+    Autores:
+        Mario García Pascual
+        Javier López Cano
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gmp.h>
-#include <assert.h>
 
 #define MODE_   0
 #define K_      1
@@ -31,6 +37,10 @@ FILE *in, *out;
 
 /* stream {-C|-D} {-k clave} [-i file_in] [-o file_out] */
 
+/*
+    PARTE 0: Parseo de argumentos. Dado que no forma estrictamente parte de la
+    práctica no se comenta sistemáticamente
+*/
 int parse_args(int argc, char *argv[])
 {
     int i;
@@ -130,45 +140,58 @@ int print_args(char *argv[]) {
         printf("%s\n", argv[args[OUT_]]);
 }
 
+/*
+    PARTE 1: Funciones para implementar el cifrado/descifrado de flujo
+*/
+
+/*
+    Devuelve un número aleatorio entre 0 y 25 usando la función rand() de stdlib
+*/
 int rand_()
 {
     return (rand() % ALPH_SIZE);
 }
 
+/*
+    Devuelve el caracter c codificado por desplazamiento vía r
+*/
 int encode_char(int c, int r)
 {
     return (c + r - 'A') % ALPH_SIZE + 'A';
 }
 
+/*
+    Establece la clave mediante srand. Después, char a char, lee, codifica y
+    escribe, hasta terminar el fichero  o encontrar un char fuera del alfabeto
+*/
 int stream_encode()
 {
     int c, i = 0;
     srand(key);
     while ((c = fgetc(in)) != EOF && IS_IN_ALPH(c))
         fputc(encode_char(c, rand_()), out);
+    fputc('\n', out);
 }
 
+/*
+    Devuelve el caracter c decodificado por desplazamiento vía r
+*/
 int decode_char(int c, int r)
 {
     return (c + ALPH_SIZE - r - 'A') % ALPH_SIZE + 'A';
 }
 
+/*
+    Establece la clave mediante srand. Después, char a char, lee, decodifica y
+    escribe, hasta terminar el fichero o encontrar un char fuera del alfabeto
+*/
 int stream_decode()
 {
     int c, i = 0;
     srand(key);
     while ((c = fgetc(in)) != EOF && IS_IN_ALPH(c))
         fputc(decode_char(c, rand_()), out);
-}
-
-int is_valid_str(char *str, int str_len)
-{
-    for (int i = 0; i < str_len; i++)
-    {
-        if (!IS_IN_ALPH(str[i]))
-            return ERR;
-    }
-    return OK;
+    fputc('\n', out);
 }
 
 /*
@@ -181,16 +204,19 @@ int is_valid_str(char *str, int str_len)
 
 int main (int argc, char *argv[])
 {
+    /* Parsea, carga e imprime los argumentos */
     if (parse_args(argc, argv) == ERR)
         return ERR;
     load_args(argv);
     print_args(argv);
 
+    /* Codifica o decodifica dependiendo del modo */
     if (mode == ENC)
         stream_encode();
     else /* if (mode == DEC) */
         stream_decode();
 
+    /* Limpia la memoria utilizada */
     clean();
 
     return OK;
