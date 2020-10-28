@@ -1,31 +1,37 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g
 GMP_FLAGS = -lgmp
-EJS = afin afin_var vigenere stream permutacion opcional
+EJS = afin afin_var vigenere stream permutacion opcional ic ic_key
 ######################################################################################################################################
 
 all: $(EJS)
 
-euclid.o: euclid.c euclid.h
-	$(CC) $(CFLAGS) -c euclid.c
+# euclid.o: euclid.c euclid.h
+# 	$(CC) $(CFLAGS) -c euclid.c
 
 afin: afin.c euclid.o
-	$(CC) $(CFLAGS) -c afin.c $(GMP_FLAGS) -o afin
+	$(CC) $(CFLAGS) euclid.c afin.c $(GMP_FLAGS) -o afin
 
 afin_var: afin_var.c euclid.o
-	$(CC) $(CFLAGS) -c afin_var.c $(GMP_FLAGS) -o afin_var
+	$(CC) $(CFLAGS) euclid.c afin_var.c $(GMP_FLAGS) -o afin_var
 
 vigenere: vigenere.c
-	$(CC) $(CFLAGS) -c vigenere.c -o vigenere
+	$(CC) $(CFLAGS) vigenere.c -o vigenere
+
+ic: ic.c
+	$(CC) $(CFLAGS) vigenere.c -o vigenere -lm
+
+ic_key: ic_key.c
+	$(CC) $(CFLAGS) ic_key.c -o ic_key -lm
 
 stream: stream.c
-	$(CC) $(CFLAGS) -c stream.c -o stream
+	$(CC) $(CFLAGS) stream.c -o stream
 
 permutacion: permutacion.c permutacion.h
-	$(CC) $(CFLAGS) -c permutacion.c -o permutacion
+	$(CC) $(CFLAGS) permutacion.c -o permutacion
 
 opcional: opcional.c permutacion_.c opcional.h permutacion.h
-	$(CC) $(CFLAGS) -c opcional.c -o opcional
+	$(CC) $(CFLAGS) permutacion_.c opcional.c -o opcional -lm
 
 
 clean:
