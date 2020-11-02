@@ -218,7 +218,6 @@ void print_ics()
     fprintf(out, "-------- Conclusiones\n");
     if (fabs(avg - IC_ENG) < THOLD) fprintf(out, "¡Ojo! Dif. con IC inglés < %lf\n", THOLD);
     if (fabs(avg - IC_SPA) < THOLD) fprintf(out, "¡Ojo! Dif. con IC español < %lf\n", THOLD);
-    if (fabs(avg - IC_RAN) < THOLD) fprintf(out, "¡Ojo! Dif. con IC aleatorio < %lf\n", THOLD);
 }
 
 /*
@@ -267,7 +266,7 @@ int main (int argc, char *argv[])
     calc_ics();
     print_ics();
     dealloc_memory();
-    
+
     clean();
 
     return OK;

@@ -1,13 +1,13 @@
 CC = gcc
 CFLAGS = -g
 GMP_FLAGS = -lgmp
-EJS = afin afin_var vigenere stream permutacion opcional ic ic_key
+EJS = afin afin_var vigenere stream permutacion opcional ic ic_key kasiski
 ######################################################################################################################################
 
 all: $(EJS)
 
-# euclid.o: euclid.c euclid.h
-# 	$(CC) $(CFLAGS) -c euclid.c
+euclid.o: euclid.c euclid.h
+	$(CC) $(CFLAGS) -c euclid.c
 
 afin: afin.c euclid.o
 	$(CC) $(CFLAGS) euclid.c afin.c $(GMP_FLAGS) -o afin
@@ -18,8 +18,11 @@ afin_var: afin_var.c euclid.o
 vigenere: vigenere.c
 	$(CC) $(CFLAGS) vigenere.c -o vigenere
 
+kasiski: kasiski.c
+	$(CC) $(CFLAGS) kasiski.c -o kasiski -lm
+
 ic: ic.c
-	$(CC) $(CFLAGS) vigenere.c -o vigenere -lm
+	$(CC) $(CFLAGS) ic.c -o ic -lm
 
 ic_key: ic_key.c
 	$(CC) $(CFLAGS) ic_key.c -o ic_key -lm
