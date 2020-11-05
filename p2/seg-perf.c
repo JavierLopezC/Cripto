@@ -10,6 +10,7 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
+#include <gmp.h>
 
 #define M_      0
 #define IN_     1
@@ -34,8 +35,9 @@ int args[6] = {OB,OP,OP};     /* OB es para args. obligatorios */
 int mode;
 FILE *in, *out;
 
-int freqs[ALPH_SIZE] = {0};
+double probs[ALPH_SIZE] = {0};
 int freqs_enc[ALPH_SIZE] = {0};
+double probs_cond[ALPH_SIZE][ALPH_SIZE];
 int total = 0;
 
 /* seg-perf {-P | -I} [-i file_in] [-o file_out] */
@@ -130,6 +132,92 @@ void clean()
     fclose(out);
 }
 
+void reset_files(char *argv[]){
+    fflush(in);
+    fclose(in);
+    fflush(out);
+    fclose(out);
+    if (args[IN_] == OP)
+        in = stdin;
+    else
+        in = fopen(argv[args[IN_]], "r");
+    if (args[OUT_] == OP)
+        out = stdout;
+    else
+        out = fopen(argv[args[OUT_]], "r");
+}
+
+int key_gen(gmp_randstate_t state){
+    mpz_t key, max;
+    int final_key;
+    mpz_init(key);
+    mpz_init(max);
+    mpz_set_ui(max, 26);
+    mpz_urandomm(key, state, max);
+    final_key = mpz_get_ui(key);
+    mpz_clear(max);
+    mpz_clear(key);
+    return final_key;
+}
+
+/*
+    Devuelve el caracter c codificado por desplazamiento vía r
+*/
+int encode_char(int c, int r)
+{
+    return (c + r - 'A') % ALPH_SIZE + 'A';
+}
+
+/*
+    Establece la clave mediante srand. Después, char a char, lee, codifica y
+    escribe, hasta terminar el fichero  o encontrar un char fuera del alfabeto
+*/
+int encode_P()
+{
+    gmp_randstate_t state;
+    int c;
+    gmp_randinit_default(state);
+    while ((c = fgetc(in)) != EOF && IS_IN_ALPH(c))
+        fputc(encode_char(c, key_gen(state)), out);
+    fputc('\n', out);
+}
+
+void calc_probs(){
+    int i, j, c, c_enc;
+    for(i = 0; i<ALPH_SIZE; i++){
+        for(j = 0; j<ALPH_SIZE; j++)
+        probs_cond[i][j] = 0;
+    }
+    while ((c = fgetc(in)) != EOF && IS_IN_ALPH(c)){
+        probs[c - 'A']++;
+        total++;
+        if ((c_enc = fgetc(out)) != EOF && IS_IN_ALPH(c_enc)){
+            probs_cond[c_enc - 'A'][c - 'A']++;
+            freqs_enc[c_enc - 'A']++;
+        }else{
+            printf("Texto cifrado incorrecto.\n");
+        }
+    }
+    for(i = 0; i<ALPH_SIZE; i++){
+        probs[i] /= total;
+    }
+    for(i = 0; i<ALPH_SIZE; i++){
+        for(j = 0; j<ALPH_SIZE; j++)
+        probs_cond[i][j] /= freqs_enc[i];
+    }
+}
+
+void print_probs(){
+    int i, j;
+    for(i = 0; i < ALPH_SIZE; i++){
+        printf("\nP(%c) = %lf\n", i + 'A', probs[i]);
+        for(j = 0; j < ALPH_SIZE; j++){
+            printf("\nP(%c|%c) = %lf\n", i + 'A', j + 'A', probs_cond[j][i]);
+        }
+
+    }
+}
+
 /*
     PARTE 1: Funciones para hacer el ejercicio
 */
@@ -144,6 +232,12 @@ int main (int argc, char *argv[])
     }
     load_args(argv);
     print_args(argv);
+
+    encode_P();
+    reset_files(argv);
+    calc_probs();
+
+    print_probs();
 
     clean();
 
