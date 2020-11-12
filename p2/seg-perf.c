@@ -37,7 +37,7 @@ FILE *in, *out;
 
 double probs[ALPH_SIZE] = {0};
 int freqs_enc[ALPH_SIZE] = {0};
-double probs_cond[ALPH_SIZE][ALPH_SIZE];
+double probs_cond[ALPH_SIZE][ALPH_SIZE], media[ALPH_SIZE], desv[ALPH_SIZE];
 int total = 0;
 
 /* seg-perf {-P | -I} [-i file_in] [-o file_out] */
@@ -149,10 +149,12 @@ void reset_files(char *argv[]){
 
 int key_gen(gmp_randstate_t state){
     mpz_t key, max;
-    int final_key;
+    int final_key, module;
+    if(mode == NEP) module = 37;
+    else module = 26;
     mpz_init(key);
     mpz_init(max);
-    mpz_set_ui(max, 26);
+    mpz_set_ui(max, module);
     mpz_urandomm(key, state, max);
     final_key = mpz_get_ui(key);
     mpz_clear(max);
@@ -205,17 +207,38 @@ void calc_probs(){
         for(j = 0; j<ALPH_SIZE; j++)
         probs_cond[i][j] /= freqs_enc[i];
     }
+    for(i = 0; i < ALPH_SIZE; i++){
+        for(j = 0, media[i] = 0; j < ALPH_SIZE; j++){
+            media[i] += fabs(probs_cond[j][i] - probs[i]);
+        }
+        media[i] /= ALPH_SIZE;
+    }
+
+    for(i = 0; i < ALPH_SIZE; i++){
+        for(j = 0, desv[i] = 0; j < ALPH_SIZE; j++){
+            desv[i] += pow((fabs(probs_cond[j][i] - probs[i]) - media[i]), 2);
+        }
+        desv[i] /= ALPH_SIZE;
+    }
+
 }
 
 void print_probs(){
     int i, j;
+    double med = 0;
     for(i = 0; i < ALPH_SIZE; i++){
+        printf("------------------------------------------");
         printf("\nP(%c) = %lf\n", i + 'A', probs[i]);
         for(j = 0; j < ALPH_SIZE; j++){
-            printf("\nP(%c|%c) = %lf\n", i + 'A', j + 'A', probs_cond[j][i]);
+            if(j % 2 == 0) printf("\n");
+            printf("P(%c|%c) = %lf\t", i + 'A', j + 'A', probs_cond[j][i]);
         }
-
+        printf("\n\nError medio: %lf\t", media[i]);
+        printf("Desviación del error: %lf\n", desv[i]);
+        med += media[i];
     }
+    printf("------------------------------------------");
+    printf("\n\nError medio total: %lf\n", med/ALPH_SIZE);
 }
 
 /*
