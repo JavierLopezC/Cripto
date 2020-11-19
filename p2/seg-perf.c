@@ -219,6 +219,7 @@ void calc_probs(){
             desv[i] += pow((fabs(probs_cond[j][i] - probs[i]) - media[i]), 2);
         }
         desv[i] /= ALPH_SIZE;
+        desv[i] = sqrt(desv[i]);
     }
 
 }
