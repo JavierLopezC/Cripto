@@ -2,14 +2,53 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "AES_tables.c"
-#include "euclid_gf.h"
+//#include "AES_tables.c"
+#include "gf8.h"
 
 #define DIRECT 0
 #define INVERSE 1
 
 #define OK 0
 #define ERR -1
+
+static const int X[8][8] = {
+	{1, 0, 0, 0, 1, 1, 1, 1},
+	{1, 1, 0, 0, 0, 1, 1, 1},
+	{1, 1, 1, 0, 0, 0, 1, 1},
+	{1, 1, 1, 1, 0, 0, 0, 1},
+	{1, 1, 1, 1, 1, 0, 0, 0},
+	{0, 1, 1, 1, 1, 1, 0, 0},
+	{0, 0, 1, 1, 1, 1, 1, 0},
+	{0, 0, 0, 1, 1, 1, 1, 1}
+};
+
+static const int Y[8][8] = {
+	{0, 0, 1, 0, 0, 1, 0, 1},
+	{1, 0, 0, 1, 0, 0, 1, 0},
+	{0, 1, 0, 0, 1, 0, 0, 1},
+	{1, 0, 1, 0, 0, 1, 0, 0},
+	{0, 1, 0, 1, 0, 0, 1, 0},
+	{0, 0, 1, 0, 1, 0, 0, 1},
+	{1, 0, 0, 1, 0, 1, 0, 0},
+	{0, 1, 0, 0, 1, 0, 1, 0}
+};
+
+static const int C[8] = {1, 1, 0, 0, 0, 1, 1, 0};
+
+int affine_transf(int x){
+	int i, j, ret, *desc, *res;
+	desc = descomp_gf(x);
+	res = (int*)malloc(8 * sizeof(int));
+	for(i=0; i<8; i++){
+		res[i] = 0;
+		for(j=0; j<8; j++){
+			res[i] = res[i] ^ (X[i][j] * desc[j]);
+		}
+		res[i] += C[i];
+	}
+	free(desc);
+	return recomp_gf(res);
+}
 
 /*long search_table_AES(int input, int tabla){
 	int fila = input / 16;
@@ -31,11 +70,53 @@ int check_table(int input1, int input2, int tabla){
 
 }*/
 
+void print_matrix(int **m){
+	int i, j;
+	for(i=0; i<16; i++){
+		printf("{");
+		for(j=0;j<16;j++){
+			printf(" %02x ", m[i][j]);
+		}
+		printf("}\n");
+	}
+	printf("\n\n");
+}
+
+int** alloc_matrix(){
+	int i, **M;
+	M = (int**)malloc(16 * sizeof(int*));
+	for(i=0;i<16;i++){
+		M[i] = (int*)malloc(16 * sizeof(int));
+	}
+	return M;
+}
+
+void free_matrix(int **M){
+	int i;
+	for(i=0;i<16;i++){
+		free(M[i]);
+	}
+	free(M);
+}
+
 void main(){
-	int inv;
-	char *ptr;
-	struct ext_ret_gf ret;
-	ext_euclid_gf(&ret, (int)strtol("95", &ptr, 16));
-	inv = ret.inv;
-	printf("Inverso de 95: %02X\n", inv);
+	int i, line, col, value, **dir, **inv;
+	dir = alloc_matrix();
+	inv = alloc_matrix();
+	for(i=0; i<256; i++){
+		line = i/16;
+		col = i%16;
+		value = inv_gf8(i);
+		value = affine_transf(value);
+		dir[line][col] = value;
+		line = value/16;
+		col = value%16;
+		inv[line][col] = i;
+	}
+	print_matrix(dir);
+
+	print_matrix(inv);
+
+	free_matrix(dir);
+	free_matrix(inv);
 }
