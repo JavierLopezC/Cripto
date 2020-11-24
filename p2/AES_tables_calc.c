@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-//#include "AES_tables.c"
 #include "gf8.h"
 #include "AES_tables.c"
 
@@ -50,26 +49,6 @@ int affine_transf(int x){
 	free(desc);
 	return recomp_gf(res);
 }
-
-/*long search_table_AES(int input, int tabla){
-	int fila = input / 16;
-	int columna = input % 16;
-	char *ptr;
-
-	if(tabla == DIRECT){
-		return strtol(DIRECT_SBOX[fila][columna], &ptr, 16);
-	}else if(tabla == INVERSE){
-		return strtol(INVERSE_SBOX[fila][columna], &ptr, 16);
-	}else{
-		printf("Tabla no válida.");
-		return ERR;
-	}
-}
-
-
-int check_table(int input1, int input2, int tabla){
-
-}*/
 
 void print_matrix(int **m){
 	int i, j;
