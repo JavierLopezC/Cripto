@@ -4,6 +4,7 @@
 #include <assert.h>
 //#include "AES_tables.c"
 #include "gf8.h"
+#include "AES_tables.c"
 
 #define DIRECT 0
 #define INVERSE 1
@@ -99,8 +100,34 @@ void free_matrix(int **M){
 	free(M);
 }
 
-void main(){
-	int i, line, col, value, **dir, **inv;
+int compare_matrix(int **m, int type){
+	int i, j;
+	char *ptr;
+	for(i=0;i<16;i++){
+		for(j=0;j<16;j++){
+			if(type == DIRECT){
+				if(m[i][j] == (int)strtol(DIRECT_SBOX[i][j], &ptr, 16)){
+					continue;
+				}else{
+					return 1;
+				}
+			}else if(type == INVERSE){
+				if(m[i][j] == (int)strtol(INVERSE_SBOX[i][j], &ptr, 16)){
+					continue;
+				}else{
+					return 1;
+				}
+			}else{
+				printf("type no válido.\n");
+				return -1;
+			}
+		}
+	}
+	return 0;
+}
+
+int main(){
+	int i, check, line, col, value, **dir, **inv;
 	dir = alloc_matrix();
 	inv = alloc_matrix();
 	for(i=0; i<256; i++){
@@ -113,10 +140,31 @@ void main(){
 		col = value%16;
 		inv[line][col] = i;
 	}
+	printf("S-Box Directa:\n");
 	print_matrix(dir);
+	printf("Comparando S-Box directa con la del fichero AES_tables.c\n\n");
+	check = compare_matrix(dir, DIRECT);
+	if(check == -1) return ERR;
+	if(check == 0){
+		printf("Las S-Boxes directas coinciden.\n\n");
+	}else{
+		printf("Las S-Boxes directas coinciden.\n\n");
+	}
 
+	printf("S-Box Inversa:\n");
 	print_matrix(inv);
+
+	printf("Comparando S-Box inversa con la del fichero AES_tables.c\n\n");
+	check = compare_matrix(inv, INVERSE);
+	if(check == -1) return ERR;
+	if(check == 0){
+		printf("Las S-Boxes inversas coinciden.\n\n");
+	}else{
+		printf("Las S-Boxes inversas coinciden.\n\n");
+	}
 
 	free_matrix(dir);
 	free_matrix(inv);
+
+	return OK;
 }
