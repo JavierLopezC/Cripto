@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g
 GMP_FLAGS = -lgmp
 MATH_FLAG = -lm
-EJS = seg-perf desCBC AES_lineal_check AES_tables_calc
+EJS = seg-perf desCBC AES_lineal_check SBOX_AES
 ######################################################################################################################################
 
 all: $(EJS)
@@ -22,8 +22,8 @@ desCBC: desCBC.c desCBC.h
 AES_lineal_check: AES_lineal_check.c AES_tables.o
 	$(CC) $(CFLAGS) AES_lineal_check.c -o AES_lineal_check
 
-AES_tables_calc: AES_tables_calc.c gf8.o AES_tables.o
-	$(CC) $(CFLAGS) gf8.c AES_tables_calc.c $(MATH_FLAG) -o AES_tables_calc
+SBOX_AES: AES_tables_calc.c gf8.o AES_tables.o
+	$(CC) $(CFLAGS) gf8.c AES_tables_calc.c $(MATH_FLAG) -o SBOX_AES
 
 clean:
 	rm -rf *.o tokens.h.gch $(EJS)
