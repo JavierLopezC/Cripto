@@ -233,12 +233,6 @@ int main(int argc, char *argv[]){
 		}
 		m[line][col] = value;
 	}
-	if(type == DIRECT){
-		printf("S-Box Directa:\n");
-
-	}else{
-		printf("S-Box Inversa:\n");
-	}
 
 	print_matrix(m);
 	printf("Comparando S-Box con la del fichero AES_tables.c\n\n");
