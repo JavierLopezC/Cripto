@@ -1,5 +1,5 @@
 /*
-    Implementación de DES con modo operación CBC
+    Implementación de DES con modo de operación ECB
 
     Autores:
         Mario García Pascual
@@ -42,15 +42,13 @@ FILE *out;
 int verbose;
 
 uint64_t key;
-uint64_t cbc_iv;
 uint64_t block;
 uint64_t enc_subkeys[ROUNDS] = {0};
 uint64_t dec_subkeys[ROUNDS] = {0};
 
 
 /*
-    desCBC      {-C | -D} { -k clave } { -iv vector inicializacion }
-                [-i file_in] [-o file_out] [ -v ]
+    desCBC      {-C | -D} [ -k clave ] [-i file_in] [-o file_out] [ -v ]
 */
 
 /*
@@ -117,8 +115,6 @@ int load_args(char *argv[])
         mode = DEC;
     if (args[K_] != OP)
         key = (uint64_t) strtoull(argv[args[K_]], NULL, 16);
-    if (args[IV_] != OP)
-        cbc_iv = (uint64_t) strtoull(argv[args[IV_]], NULL, 16);
     /* Argumentos opcionales */
     in = stdin;
     out = stdout;
@@ -136,8 +132,6 @@ int print_args(char *argv[]) {
     printf("Modo C/D: %d\n", mode);
     printf("Clave:\t");
     print_hex(key);
-    printf("IV:\t");
-    print_hex(cbc_iv);
     printf("Entrada: ");
     if (args[IN_] == OP)
         printf("stdin\n");
@@ -415,34 +409,28 @@ void des(uint64_t subkeys[])
 }
 
 /*
-    Cifra el contenido del fichero de entrada usando el modo de operacion CBC.
+    Cifra el contenido del fichero de entrada usando el modo de operacion ECB.
     El resultado se almacena en el fichero de salida.
 
     Asume que:
         - la clave se encuentra en key
-        - el vector de inic. se encuentra en cbc_iv
 */
-void cbc_enc()
+void ecb_enc()
 {
     int i = 0;
-    uint64_t x, y, z;
+    uint64_t x, z;
     generate_subkeys();
     while (get_block() != 0) {
         x = block;
-        block ^= cbc_iv;
-        y = block;
         des(enc_subkeys);
         z = block;
         put_block();
-        cbc_iv = reverse_bytes(block);
 
         if (verbose == 1)
         {
             printf("-------- BLOQUE %d\n", ++i);
             printf("BLOQUE PLANO:\t\t");
             print_hex(x);
-            printf("BLOQUE + IV:\t\t");
-            print_hex(y);
             printf("BLOQUE CIFRADO:\t\t");
             print_hex(z);
         }
@@ -451,27 +439,22 @@ void cbc_enc()
 
 /*
     Descifra el contenido del fichero de entrada usando el modo de operacion
-    CBC. El resultado se almacena en el fichero de salida.
+    ECB. El resultado se almacena en el fichero de salida.
 
     Asume que:
         - la clave se encuentra en key
-        - el vector de inic. se encuentra en cbc_iv
 */
-void cbc_dec()
+void ecb_dec()
 {
     int i = 0;
-    uint64_t x, y, z;
+    uint64_t x, y;
     uint64_t foo;
     generate_subkeys();
     while (get_block() != 0) {
-        foo = block;
         x = block;
         des(dec_subkeys);
         y = block;
-        block ^= cbc_iv;
-        z = block;
         put_block();
-        cbc_iv = foo;
 
         if (verbose == 1)
         {
@@ -480,8 +463,6 @@ void cbc_dec()
             print_hex(x);
             printf("BLOQUE CIF. DESCIF.:\t\t");
             print_hex(y);
-            printf("BLOQUE ANTES + IV:\t\t");
-            print_hex(z);
         }
     }
 }
@@ -500,7 +481,7 @@ void cbc_dec()
 */
 int main (int argc, char *argv[])
 {
-    uint64_t key_, cbc_iv_;
+    uint64_t key_;
     /* Parsea, carga e imprime los argumentos */
     srand(time(NULL));
     if (parse_args(argc, argv) == ERR)
@@ -514,14 +495,10 @@ int main (int argc, char *argv[])
     {
         key = set_parity(rand_uint64());
         key_ = key;
-        cbc_iv = rand_uint64();
-        cbc_iv_ = cbc_iv;
-        cbc_enc();
+        ecb_enc();
         printf("--------\n");
         printf("GENERATED KEY:\t\t");
         print_hex(key_);
-        printf("GENERATED IV:\t\t");
-        print_hex(cbc_iv_);
     }
     else /* if (mode == DEC) */
     {
@@ -530,7 +507,7 @@ int main (int argc, char *argv[])
             printf("Error: bits de paridad incorrectos\n");
             return ERR;
         }
-        cbc_dec();
+        ecb_dec();
     }
 
     clean();

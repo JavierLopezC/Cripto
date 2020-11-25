@@ -169,10 +169,10 @@ void clean()
 /*
     Imprime los 64 bits de b, empezando por el más significativo a la izq.
 */
-void print_bin(uint64_t b)
+void print_bin(uint64_t b, int n)
 {
-    for ( int i = 0; i < 64; i++)
-        printf("%lld", (b >> (63 - i)) & 0x1ULL);
+    for ( int i = 0; i < n; i++)
+        printf("%lld", (b >> (n - 1 - i)) & 0x1ULL);
     printf("\n");
 }
 
@@ -242,9 +242,19 @@ uint64_t permute(uint64_t b, const short p[], int n, int m)
 void generate_subkeys()
 {
     key = permute(key, PC1, BITS_IN_PC1, 64);
+    printf("K+ = ");
+    print_bin(key, 56);
+    printf("C_%d = ", 0);
+    print_bin( (key >> 28) & 0xFFFFFFFULL , 28);
+    printf("D_%d = ", 0);
+    print_bin( key & 0xFFFFFFFULL , 28 );
     for (int i = 0; i < ROUNDS; i++)
     {
         rotate_halves(ROUND_SHIFTS[i]);
+        printf("C_%d = ", i+1);
+        print_bin( (key >> 28) & 0xFFFFFFFULL , 28);
+        printf("D_%d = ", i+1);
+        print_bin( key & 0xFFFFFFFULL , 28 );
         enc_subkeys[i] = permute(key, PC2, BITS_IN_PC2, 56);
         dec_subkeys[ROUNDS - 1 - i] = enc_subkeys[i];
     }
@@ -401,17 +411,31 @@ void des(uint64_t subkeys[])
         0xFFFFFFFF := primeros 32 bits a 1, resto 0
     */
     uint64_t left, right;
+    printf("M = ");
+    print_bin(block, 64);
     block = permute(block, IP, BITS_IN_IP, 64);
+    printf("IP = ");
+    print_bin(block, 64);
     left = (block >> 32) & 0xFFFFFFFFULL;
     right = block & 0xFFFFFFFFULL;
+    printf("L_%d = ", 0);
+    print_bin(left, 32);
+    printf("R_%d = ", 0);
+    print_bin(right, 32);
     for (int i = 0; i < ROUNDS; i++)
     {
         left ^= feistel(right, subkeys[i]);
         swap(&left, &right);
+        printf("L_%d = ", i+1);
+        print_bin(left, 32);
+        printf("R_%d = ", i+1);
+        print_bin(right, 32);
     }
     swap(&left, &right);
     block = (left << 32) | right;
     block = permute(block, IP_INV, BITS_IN_IP, 64);
+    printf("IP^{-1} = ");
+    print_bin(block, 64);
 }
 
 /*
@@ -500,40 +524,23 @@ void cbc_dec()
 */
 int main (int argc, char *argv[])
 {
-    uint64_t key_, cbc_iv_;
-    /* Parsea, carga e imprime los argumentos */
-    srand(time(NULL));
-    if (parse_args(argc, argv) == ERR)
+    block = 0x0123456789ABCDEF;
+    key = 0x133457799BBCDFF1;
+    printf("-------- M EN HEXADECIMAL:\t");
+    print_hex(block);
+    printf("-------- K EN HEXADECIMAL:\t");
+    print_hex(key);
+    printf("M = ");
+    print_bin(block, 64);
+    printf("K = ");
+    print_bin(key, 64);
+    generate_subkeys();
+    for (int i = 0; i < ROUNDS; i++)
     {
-        return ERR;
+        printf("K_%d = ", i+1);
+        print_bin(enc_subkeys[i], 48);
     }
-    load_args(argv);
-    print_args(argv);
-
-    if (mode == ENC)
-    {
-        key = set_parity(rand_uint64());
-        key_ = key;
-        cbc_iv = rand_uint64();
-        cbc_iv_ = cbc_iv;
-        cbc_enc();
-        printf("--------\n");
-        printf("GENERATED KEY:\t\t");
-        print_hex(key_);
-        printf("GENERATED IV:\t\t");
-        print_hex(cbc_iv_);
-    }
-    else /* if (mode == DEC) */
-    {
-        if (check_parity(key) == 0)
-        {
-            printf("Error: bits de paridad incorrectos\n");
-            return ERR;
-        }
-        cbc_dec();
-    }
-
-    clean();
-
-    return OK;
+    des(enc_subkeys);
+    printf("-------- RESULTADO EN HEXADECIMAL:\t");
+    print_hex(block);
 }

@@ -1,5 +1,5 @@
 /*
-    Implementación de DES con modo operación CBC
+    Implementación de Triple DES con tres claves y modo operación CBC
 
     Autores:
         Mario García Pascual
@@ -15,13 +15,15 @@
 #include "desCBC.h"
 
 #define M_      0
-#define K_      1
-#define IV_     2
-#define IN_     3
-#define OUT_    4
-#define V_      5
+#define K1_     1
+#define K2_     2
+#define K3_     3
+#define IV_     4
+#define IN_     5
+#define OUT_    6
+#define V_      7
 
-#define NARGS   6
+#define NARGS   8
 
 #define OB      -1
 #define OP      0
@@ -34,7 +36,7 @@
 
 #define MASK(k) (0xFFFFFFFFFFFFFFFF >> (64 - k))
 
-int args[NARGS] = {OB,OP,OP,OP,OP,OP};     /* OB es para args. obligatorios */
+int args[NARGS] = {OB,OP,OP,OP,OP,OP,OP,OP};     /* OB es para args. obligatorios */
 
 int mode;
 FILE *in;
@@ -42,10 +44,11 @@ FILE *out;
 int verbose;
 
 uint64_t key;
+uint64_t keys[3];
 uint64_t cbc_iv;
 uint64_t block;
-uint64_t enc_subkeys[ROUNDS] = {0};
-uint64_t dec_subkeys[ROUNDS] = {0};
+uint64_t enc_subkeys[3][ROUNDS] = {0};
+uint64_t dec_subkeys[3][ROUNDS] = {0};
 
 
 /*
@@ -73,8 +76,12 @@ int parse_args(int argc, char *argv[])
             args[M_] = i;
         else if (strcmp(argv[i], "-D") == 0)
             args[M_] = i;
-        else if (strcmp(argv[i], "-k") == 0)
-            args[K_] = ++i;
+        else if (strcmp(argv[i], "-k1") == 0)
+            args[K1_] = ++i;
+        else if (strcmp(argv[i], "-k2") == 0)
+            args[K2_] = ++i;
+        else if (strcmp(argv[i], "-k3") == 0)
+            args[K3_] = ++i;
         else if (strcmp(argv[i], "-iv") == 0)
             args[IV_] = ++i;
         else if (strcmp(argv[i], "-i") == 0)
@@ -115,8 +122,12 @@ int load_args(char *argv[])
         mode = ENC;
     else /* if (strcmp(argv[args[M_]], "-D") == 0) */
         mode = DEC;
-    if (args[K_] != OP)
-        key = (uint64_t) strtoull(argv[args[K_]], NULL, 16);
+    if (args[K1_] != OP)
+        keys[0] = (uint64_t) strtoull(argv[args[K1_]], NULL, 16);
+    if (args[K2_] != OP)
+        keys[1] = (uint64_t) strtoull(argv[args[K2_]], NULL, 16);
+    if (args[K3_] != OP)
+        keys[2] = (uint64_t) strtoull(argv[args[K3_]], NULL, 16);
     if (args[IV_] != OP)
         cbc_iv = (uint64_t) strtoull(argv[args[IV_]], NULL, 16);
     /* Argumentos opcionales */
@@ -134,9 +145,12 @@ int load_args(char *argv[])
 
 int print_args(char *argv[]) {
     printf("Modo C/D: %d\n", mode);
-    printf("Clave:\t");
-    print_hex(key);
-    printf("IV:\t");
+    for (int i = 0; i < 3; i++)
+    {
+        printf("Clave %d:\t", i+1);
+        print_hex(keys[i]);
+    }
+    printf("IV:\t\t");
     print_hex(cbc_iv);
     printf("Entrada: ");
     if (args[IN_] == OP)
@@ -237,16 +251,20 @@ uint64_t permute(uint64_t b, const short p[], int n, int m)
 }
 
 /*
-    Genera las subclaves de DES, suponiendo que la clave está guardad en key
+    Genera las subclaves de DES, suponiendo que las claves está guardad en keys
 */
 void generate_subkeys()
 {
-    key = permute(key, PC1, BITS_IN_PC1, 64);
-    for (int i = 0; i < ROUNDS; i++)
+    for (int j = 0; j < 3; j++)
     {
-        rotate_halves(ROUND_SHIFTS[i]);
-        enc_subkeys[i] = permute(key, PC2, BITS_IN_PC2, 56);
-        dec_subkeys[ROUNDS - 1 - i] = enc_subkeys[i];
+        keys[j] = permute(keys[j], PC1, BITS_IN_PC1, 64);
+        key = keys[j];
+        for (int i = 0; i < ROUNDS; i++)
+        {
+            rotate_halves(ROUND_SHIFTS[i]);
+            enc_subkeys[j][i] = permute(key, PC2, BITS_IN_PC2, 56);
+            dec_subkeys[j][ROUNDS - 1 - i] = enc_subkeys[j][i];
+        }
     }
 }
 
@@ -395,7 +413,7 @@ void swap(uint64_t *left, uint64_t *right)
         - dec_subkeys, en caso de descifrado
     La diferencia entre los dos arrays es el orden de las subclaves
 */
-void des(uint64_t subkeys[])
+void des(uint64_t subkeys[][ROUNDS], int j)
 {
     /*
         0xFFFFFFFF := primeros 32 bits a 1, resto 0
@@ -406,7 +424,7 @@ void des(uint64_t subkeys[])
     right = block & 0xFFFFFFFFULL;
     for (int i = 0; i < ROUNDS; i++)
     {
-        left ^= feistel(right, subkeys[i]);
+        left ^= feistel(right, subkeys[j][i]);
         swap(&left, &right);
     }
     swap(&left, &right);
@@ -431,7 +449,9 @@ void cbc_enc()
         x = block;
         block ^= cbc_iv;
         y = block;
-        des(enc_subkeys);
+        des(enc_subkeys, 0);
+        des(dec_subkeys, 1);
+        des(enc_subkeys, 2);
         z = block;
         put_block();
         cbc_iv = reverse_bytes(block);
@@ -466,7 +486,9 @@ void cbc_dec()
     while (get_block() != 0) {
         foo = block;
         x = block;
-        des(dec_subkeys);
+        des(dec_subkeys, 2);
+        des(enc_subkeys, 1);
+        des(dec_subkeys, 0);
         y = block;
         block ^= cbc_iv;
         z = block;
@@ -500,7 +522,7 @@ void cbc_dec()
 */
 int main (int argc, char *argv[])
 {
-    uint64_t key_, cbc_iv_;
+    uint64_t keys_[3], cbc_iv_;
     /* Parsea, carga e imprime los argumentos */
     srand(time(NULL));
     if (parse_args(argc, argv) == ERR)
@@ -512,23 +534,36 @@ int main (int argc, char *argv[])
 
     if (mode == ENC)
     {
-        key = set_parity(rand_uint64());
-        key_ = key;
+        for (int i = 0; i < 3; i++)
+        {
+            keys[i] = set_parity(rand_uint64());
+            keys_[i] = keys[i];
+        }
         cbc_iv = rand_uint64();
         cbc_iv_ = cbc_iv;
         cbc_enc();
         printf("--------\n");
-        printf("GENERATED KEY:\t\t");
-        print_hex(key_);
-        printf("GENERATED IV:\t\t");
+        printf("GENERATED KEYS:\n");
+        for (int i = 0; i < 3; i++)
+        {
+            printf("\t\t\t");
+            print_hex(keys_[i]);
+        }
+        printf("\nFOR SLL:\t\t");
+        for (int i = 0; i < 3; i++)
+            printf("%016"PRIx64"", keys_[i]);
+        printf("\n\nGENERATED IV:\t\t");
         print_hex(cbc_iv_);
     }
     else /* if (mode == DEC) */
     {
-        if (check_parity(key) == 0)
+        for (int i = 0; i < 3; i++)
         {
-            printf("Error: bits de paridad incorrectos\n");
-            return ERR;
+            if (check_parity(keys[i]) == 0)
+            {
+                printf("Error: bits de paridad incorrectos\n");
+                return ERR;
+            }
         }
         cbc_dec();
     }

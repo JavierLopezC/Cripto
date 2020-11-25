@@ -12,7 +12,6 @@
 #define ROWS_PER_SBOX       4
 #define COLUMNS_PER_SBOX    16
 
-void print_bin(uint64_t n);
 void print_hex(uint64_t n);
 
 /* permutacion PC1 */
