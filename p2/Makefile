@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g
 GMP_FLAGS = -lgmp
 MATH_FLAG = -lm
-EJS = seg-perf desCBC AES_lineal_check SBOX_AES desECB tdeaCBC desIllustrated
+EJS = seg-perf desCBC AES_lineal_check SBOX_AES desECB tdeaCBC desIllustrated desSBNL desAvalancha
 ######################################################################################################################################
 
 all: $(EJS)
@@ -24,6 +24,12 @@ desIllustrated: desIllustrated.c desCBC.h
 
 desECB: desECB.c desCBC.h
 	$(CC) $(CFLAGS) desECB.c $(GMP_FLAGS) -o desECB
+
+desSBNL: desSBNL.c desCBC.h
+	$(CC) $(CFLAGS) desSBNL.c $(GMP_FLAGS) -o desSBNL
+
+desAvalancha: desAvalancha.c desCBC.h
+	$(CC) $(CFLAGS) desAvalancha.c $(GMP_FLAGS) -o desAvalancha
 
 tdeaCBC: tdeaCBC.c desCBC.h
 	$(CC) $(CFLAGS) tdeaCBC.c $(GMP_FLAGS) -o tdeaCBC
